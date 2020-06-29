@@ -4,3 +4,5 @@
 ^CODE_OF_CONDUCT\.md$
 ^README\.Rmd$
 ^shiny$
+^\.travis\.yml$
+^codecov\.yml$

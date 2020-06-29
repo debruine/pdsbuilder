@@ -5,6 +5,10 @@
 
 <!-- badges: start -->
 
+[![Travis build
+status](https://travis-ci.com/debruine/pdsbuilder.svg?branch=master)](https://travis-ci.com/debruine/pdsbuilder)
+[![Codecov test
+coverage](https://codecov.io/gh/debruine/pdsbuilder/branch/master/graph/badge.svg)](https://codecov.io/gh/debruine/pdsbuilder?branch=master)
 <!-- badges: end -->
 
 The goal of pds is to create JSON sidecar files in the Psych-DS format
