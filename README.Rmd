@@ -1,0 +1,41 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# pdsbuilder
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of pds is to create JSON sidecar files in the Psych-DS format to describe your data. 
+
+## Installation
+
+You can install the development version of pdsbuilder from with:
+
+``` r
+devtools::install.github("pdsbuilder")
+```
+
+## Example
+
+
+```{r example}
+library(pdsbuilder)
+## basic example code
+```
+
+## Code of Conduct
+
+Please note that the pds project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
