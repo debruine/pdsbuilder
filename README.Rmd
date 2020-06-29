@@ -27,7 +27,7 @@ The goal of pds is to create JSON sidecar files in the Psych-DS format to descri
 You can install the development version of pdsbuilder from with:
 
 ``` r
-devtools::install.github("debruine/pdsbuilder")
+devtools::install_github("debruine/pdsbuilder")
 ```
 
 ## Example

@@ -19,7 +19,7 @@ to describe your data.
 You can install the development version of pdsbuilder from with:
 
 ``` r
-devtools::install.github("debruine/pdsbuilder")
+devtools::install_github("debruine/pdsbuilder")
 ```
 
 ## Example
