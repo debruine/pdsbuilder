@@ -26,3 +26,5 @@ Imports:
     jsonlite
 Remotes:
     debruine/faux
+URL: https://github.com/debruine/pdsbuilder
+BugReports: https://github.com/debruine/pdsbuilder/issues
