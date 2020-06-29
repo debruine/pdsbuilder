@@ -19,20 +19,16 @@ to describe your data.
 You can install the development version of pdsbuilder from with:
 
 ``` r
-devtools::install.github("pdsbuilder")
+devtools::install.github("debruine/pdsbuilder")
 ```
 
 ## Example
 
 ``` r
 library(pdsbuilder)
-#> 
-#> ************
-#> Welcome to pdsbuilder For support and examples visit:
-#> http://debruine.github.io/pdsbuilder/
-#> - Get and set global package options with: pdsbuilder_options()
-#> ************
-## basic example code
+# run shiny app
+
+pds_app()
 ```
 
 ## Code of Conduct
