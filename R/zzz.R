@@ -4,7 +4,8 @@
   op.pdsbuilder <- list(
     pdsbuilder.connection = stdin(),
     pdsbuilder.sep = "_",
-    pdsbuilder.verbose = TRUE
+    pdsbuilder.verbose = TRUE,
+    pdsbuilder.dict = data.frame()
   )
   toset <- !(names(op.pdsbuilder) %in% names(op))
   if(any(toset)) options(op.pdsbuilder[toset])

@@ -3,7 +3,7 @@
 #' @param data The data frame to generate a codebook for
 #' @param name The name of this dataset (if NULL, will be the same as `data`)
 #' @param vardesc Optional variable properties in the format of a named list of vectors (can be named or unnamed and in the same order as the data) from the options description, privacy, type, propertyID, minValue, maxValue, levels, ordered, na, naValues, alternateName, unitCode
-#' @param ... Further dataset properties (e.g., description, license, author, citation, funder, url, doi/sameAs, keywords, temporalCoverage, spatialCoverage, datePublished, dateCreated)
+#' @param ... Further dataset properties (e.g., description, license, author, citation, funder, url, identifier, keywords, privacyPolicy)
 #' @param schemaVersion defaults to "Psych-DS 0.1.0"
 #' @param return Whether the output should be in JSON format (json), a list (list) or the reformatted data with the codebook as an attribute (data)
 #' @param interactive Whether the function should prompt the user to describe columns and factor levels
@@ -75,7 +75,7 @@ codebook <- function(data, name = NULL, vardesc = list(), ...,
     datadesc$sameAs <- paste0("https://doi.org/", doi)
   }
 
-  possible_vals <- c("license", "author", "citation", "funder", "url", "sameAs", "keywords", "temporalCoverage", "spatialCoverage", "datePublished", "dateCreated")
+  possible_vals <- c("license", "author", "citation", "funder", "url", "identifier", "privacyPolicy", "keywords")
   non_standard <- setdiff(names(datadesc), possible_vals)
   if (length(non_standard) > 0) {
     warning("The following dataset properties are not standard: ",

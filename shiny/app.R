@@ -1,11 +1,16 @@
 # Libraries ----
 library(shiny)
 library(shinydashboard)
+library(shinyjs)
 library(dplyr)
 library(DT)
+library(pdsbuilder)
 
-# Functions ----
+# Functions and Tabs----
 source("func.R")
+source("licenses.R")
+source("upload.R")
+source("authors.R")
 
 # Define UI ----
 
@@ -14,7 +19,9 @@ sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("Psych-DS", tabName = "main_tab"),
     menuItem("Upload Data", tabName = "upload_tab"),
-    menuItem("Codebook", tabName = "cb_tab")
+    menuItem("Authors", tabName = "authors_tab"),
+    menuItem("Codebook", tabName = "cb_tab"),
+    menuItem("Licenses", tabName = "license_tab")
   )
 )
 
@@ -22,7 +29,18 @@ sidebar <- dashboardSidebar(
 main_tab <- tabItem(
   tabName = "main_tab",
   p("Upload data in the Data Upload tab and download the codebook JSON file in the Codebook tab."),
+  selectInput("lang", "Language", c("English" = "en",
+                                    "Test" = "test"),
+              selected = "en"),
   p("More instructions and intro...")
+)
+
+
+# . vars tab ----
+
+vars_tab <- tabItem(
+  tabName = "vars_tab",
+  p("Describe your variables here")
 )
 
 # . cb_tab ----
@@ -32,89 +50,113 @@ cb_tab <- tabItem(
   HTML("<pre id='codebook' class='shiny-text-output'></pre>")
 )
 
-# . upload_tab ----
-upload_tab <- tabItem(
-  tabName = "upload_tab",
-  fluidRow(
-    box(
-      title = "Upload Data",
-      width = 12,
-      p("This is a working demo and many functions do not work yet."),
-      fileInput("inFile", "CSV/XLS(X) Data File", 
-                multiple = FALSE, width = NULL,
-                accept = c(
-                  'text/csv',
-                  'text/comma-separated-values,text/plain',
-                  '.csv',
-                  '.xls',
-                  '.xlsx'
-                ), 
-                buttonLabel = "Browse...", 
-                placeholder = "No file selected"
-      ),
-      checkboxInput("header", "Data file has a header", TRUE),
-      DTOutput("rawdata_table")
-    )
-  )
-)
-
 # . dashboardPage ----
 ui <- dashboardPage(
-  dashboardHeader(title = "Psych-DS Codebook"),
+  dashboardHeader(title = "Psych-DS Codebook",
+                  dropdownMenuOutput("notificationsMenu")),
   sidebar,
   dashboardBody(
+    shinyjs::useShinyjs(),
     tabItems(
       main_tab,
       upload_tab,
-      cb_tab
+      authors_tab,
+      cb_tab,
+      license_tab
     )
   )
 )
 
 # Define server logic ----
 server <- function(input, output, session) {
+  ## setup ----
+  observeEvent(input$license, {
+    if (input$license == "Other (write in)") {
+      shinyjs::show("license_free")
+    } else {
+      shinyjs::hide("license_free")
+    }
+  })
+
+  ## localisation ----
+  observeEvent(input$lang, {
+  })
+
   ## Load data ----
-  v <- reactiveValues(
-    rawdata = NULL,
-    cb = "",
-    file_name = ""
-  )
-  
-  dat <- reactive({
+  rawdata <- reactive({
     inFile <- input$inFile
     if (is.null(inFile)) return(NULL)
-    
+
     file_extension <- tools::file_ext(inFile$datapath)
     if (file_extension == "csv") {
       rawdata <- read.csv(inFile$datapath, header = input$header)
     } else if (file_extension %in% c("xls", "xlsx")) {
-      rawdata <- as.data.frame(readxl::read_excel(inFile$datapath, 
+      rawdata <- as.data.frame(readxl::read_excel(inFile$datapath,
                                                    col_names = input$header))
     } else if (file_extension %in% c("sav")) {
       rawdata <- haven::read_sav(inFile$datapath)
     } else if (file_extension %in% c("sas")) {
       rawdata <- haven::read_sas(inFile$datapath)
     }
-    
-    #save file name as global variable for writing
-    file_name <- gsub(paste0("." , file_extension), "", inFile$name)
-    
-    # create initial codebook
-    cb <- codebook(rawdata, file_name, return = "json")
 
-    list(data = rawdata,
-         cb = cb,
-         file_name = file_name)
+    file_name <- gsub(paste0("." , file_extension), "", inFile$name)
+    if (input$name == "") {
+      updateTextInput(session, "name", value = file_name)
+    }
+
+    rawdata
   })
-  
+
+  # . set up codebook ----
+  cb <- reactive({
+    # create initial codebook
+    props <- list()
+    props$data <- rawdata()
+    props$return <- "json"
+
+    if (is.null(props$data)) return(NULL)
+
+    dsmeta <- c("name", "description", "schemaVersion", "license", "citation", "funder", "url", "privacyPolicy")
+
+    for (m in dsmeta) {
+      val <- input[[m]]
+      if (val != "") {
+        props[m] <- val
+      }
+    }
+
+    #props$identifer <- list()
+    if (input[["identifier_doi"]] != "") {
+      props$identifier$DOI <- input[["identifier_doi"]]
+    }
+    if (input[["identifier_issn"]] != "") {
+      props$identifier$ISSN <- input[["identifier_issn"]]
+    }
+    if (input[["identifier_pmid"]] != "") {
+      props$identifier$PMID <- input[["identifier_pmid"]]
+    }
+    if (input[["identifier"]] != "") {
+      if (length(props$identifier) == 0) {
+        props$identifier <-  input[["identifier"]]
+      } else {
+        props$identifier["other"] <- input[["identifier"]]
+      }
+    }
+
+    keywords <- strsplit(input$keywords, "\\s*,\\s*")
+    if (length(keywords[[1]]) > 0) props$keywords <- keywords[[1]]
+
+    do.call(codebook, props)
+  })
+
   output$rawdata_table <- renderDataTable({
-    datatable(dat()$data, rownames = F)
+    datatable(rawdata(), rownames = F)
   })
-  
+
   output$codebook <- renderText({
-    as.character(dat()$cb)
+    as.character(cb())
   })
-  
+
   output$downloadCB <- downloadHandler(
     filename = function() {
       paste0(dat()$file_name, ".json")
@@ -125,7 +167,63 @@ server <- function(input, output, session) {
         writeLines(file)
     }
   )
-  
+
+  # . notifications
+
+  notifications <- reactiveVal(list())
+  output$notificationsMenu <- renderMenu({
+    message(notifications())
+    dropdownMenu(type = "notifications", .list = notifications())
+  })
+
+  # . authors
+  authors <- reactiveVal(list())
+
+  observeEvent(input$add_author, {
+    problems <- FALSE
+    orcid <- check_orcid(input$orcid)
+    if (isFALSE(orcid) & input$orcid != "") {
+      problems <- TRUE
+      txt <- sprintf("The ORCiD for %s %s is not valid",
+                     input$given, input$surname)
+      msg <- notificationItem(txt,
+                              icon = icon("exclamation-triangle"),
+                              status = "warning")
+      notifications(c(notifications(), list(msg)))
+    }
+
+    a <- list(list(surname = input$surname,
+                 given = input$given,
+                 orcid = orcid,
+                 roles = input$roles))
+    authors(c(authors(), a))
+
+    if (!problems) {
+      # reset values
+      updateTextInput(session, "given", value = "")
+      updateTextInput(session, "surname", value = "")
+      updateTextInput(session, "orcid", value = "")
+    }
+  })
+
+  output$author_list <- renderUI({
+    i <- 0
+    alist <- list()
+    for (a in authors()) {
+      i <- i + 1
+      ab <- actionButton(paste0("author_", i), "Delete")
+
+      txt <- sprintf("%s, %s %s: %s",
+                     a$surname, a$given,
+                     ifelse(a$orcid, a$orcid, ""),
+                     paste(a$roles, collapse = ", "))
+
+      alist[[i]] <- tags$li(txt)
+    }
+
+    do.call(tags$ol, alist)
+  })
+
 }
 
 # Run the application ----
