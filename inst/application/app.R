@@ -25,7 +25,8 @@ sidebar <- dashboardSidebar(
     menuItem("Authors", tabName = "authors_tab"),
     menuItem("Codebook", tabName = "cb_tab"),
     menuItem("Licenses", tabName = "license_tab")
-  )
+  ),
+  uiOutput("lang")
 )
 
 # . main_tab ----
@@ -33,8 +34,7 @@ main_tab <- tabItem(
   tabName = "main_tab",
   uiOutput("instructions"),
   tags$a(href="https://docs.google.com/document/d/1u8o5jnWk0Iqp_J06PTu5NjBfVsdoPbBhstht6W0fFp0/edit#heading=h.caxnnxqaobj", "Technical Spec"),
-  uiOutput("lang"),
-  p("The translation is not fully set up yet, so only the text on this page will be translated.")
+  p("The translation is not fully set up yet, so only some text will be translated.")
 )
 
 
@@ -84,8 +84,10 @@ server <- function(input, output, session) {
     translator
   })
 
+  # trigger input label changes on language change
   observeEvent(input$lang, {
-    ip <- c(name = "Dataset Name",
+    ip <- list(
+      updateTextInput = c(name = "Dataset Name",
             schemaVersion = "Schema Version",
             license_free = "Custom License",
             citation = "Citation",
@@ -95,26 +97,24 @@ server <- function(input, output, session) {
             identifier_issn = "ISSN (International Standard Serial Number)",
             identifier_pmid = "PMID (PubMed ID)",
             identifier ="Other Identifier",
-            keywords = "Keywords (separate with commas)")
+            keywords = "Keywords (separate with commas)"),
+      updateSelectInput = c(license = "License",
+                            privacyPolicy = "Privacy Policy"),
+      updateTextAreaInput = c(description = "Description"),
+      updateCheckboxInput = c(header = "Data file has a header Name"),
+      updateActionButton = c(author_reorder = "Reorder Authors",
+                             add_author = "Add Author")
+    )
 
-    for (nm in names(ip)) {
-      updateTextInput(session, nm, label = i18n()$t(ip[[nm]]))
-    }
-
-    ip <- c(license = "License",
-            privacyPolicy = "Privacy Policy")
-    for (nm in names(ip)) {
-      updateSelectInput(session, nm, label = i18n()$t(ip[[nm]]))
-    }
-
-    ip <- c(header = "Data file has a header Name")
-    for (nm in names(ip)) {
-      updateCheckboxInput(session, nm, label = i18n()$t(ip[[nm]]))
-    }
-
-    ip <- c(description = "Description")
-    for (nm in names(ip)) {
-      updateTextAreaInput(session, nm, label = i18n()$t(ip[[nm]]))
+    for (func in names(ip)) {
+      for (nm in names(ip[[func]])) {
+        args <- list(
+          session = session,
+          inputId = nm,
+          label = i18n()$t(ip[[func]][[nm]])
+        )
+        do.call(func, args)
+      }
     }
   })
 

@@ -26,6 +26,11 @@
         "en": "Each author must have a unique order"
       },
       {
+        "en": "Add Author",
+        "it": "Aggiungi autore",
+        "pl": "Dodaj autora"
+      },
+      {
         "en": "Data file has a header Name"
       },
       {
@@ -65,6 +70,53 @@
       },
       {
         "en": "Keywords (separate with commas)"
+      },
+      {
+        "en": "Contributor Roles"},
+      {
+        "en": "Casrai CReDiT Contributor Roles Taxonomy"
+      },
+      {
+        "en": "Conceptualization: Ideas; formulation or evolution of overarching research goals and aims."
+      },
+      {
+        "en": "Data curation: Management activities to annotate (produce metadata), scrub data and maintain research data (including software code, where it is necessary for interpreting the data itself) for initial use and later re-use."
+      },
+      {
+        "en": "Formal analysis: Application of statistical, mathematical, computational, or other formal techniques to analyse or synthesize study data."
+      },
+      {
+        "en": "Funding acquisition: Acquisition of the financial support for the project leading to this publication."
+      },
+      {
+        "en": "Investigation: Conducting a research and investigation process, specifically performing the experiments, or data/evidence collection."
+      },
+      {
+        "en": "Methodology: Development or design of methodology; creation of models."
+      },
+      {
+        "en": "Project administration: Management and coordination responsibility for the research activity planning and execution."
+      },
+      {
+        "en": "Resources: Provision of study materials, reagents, materials, patients, laboratory samples, animals, instrumentation, computing resources, or other analysis tools."
+      },
+      {
+        "en": "Software: Programming, software development; designing computer programs; implementation of the computer code and supporting algorithms; testing of existing code components."
+      },
+      {
+        "en": "Supervision: Oversight and leadership responsibility for the research activity planning and execution, including mentorship external to the core team."
+      },
+      {
+        "en": "Validation: Verification, whether as a part of the activity or separate, of the overall replication/reproducibility of results/experiments and other research outputs."
+      },
+      {
+        "en": "Visualization: Preparation, creation and/or presentation of the published work, specifically visualization/data presentation."
+      },
+      {
+        "en": "Writing - original draft: Preparation, creation and/or presentation of the published work, specifically writing the initial draft (including substantive translation)."
+      },
+      {
+        "en": "Writing - review & editing: Preparation, creation and/or presentation of the published work by those from the original research group, specifically critical review, commentary or revision -- including pre- or post-publication stages."
       }
     ]
 }
