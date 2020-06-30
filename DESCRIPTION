@@ -28,8 +28,10 @@ Imports:
     shiny,
     shinydashboard,
     shinyjs,
-    DT
+    DT,
+    shiny.i18n
 Remotes:
     debruine/faux
+    appsilon/shiny.i18n
 URL: https://github.com/debruine/pdsbuilder
 BugReports: https://github.com/debruine/pdsbuilder/issues

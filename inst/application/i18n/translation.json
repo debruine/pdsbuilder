@@ -1,0 +1,70 @@
+{
+  "cultural_date_format": "%Y-%m-%d",
+  "languages": ["en", "it", "pl"],
+  "translation": [
+      {
+        "en": "Change language",
+        "it": "Cambia lingua",
+        "pl": "Wybierz język"
+      },
+      {
+        "en": "Upload data in the Data Upload tab and download the codebook JSON file in the Codebook tab.",
+        "it": "Carica i dati nella scheda Caricamento dati e scarica il file JSON del libro di codici nella scheda Libro di codice.",
+        "pl": "Prześlij dane na karcie Przesyłanie danych i pobierz plik JSON książki kodowej na karcie Książka kodowa."
+      },
+      {
+        "en": "Given name is missing",
+        "it": "Manca il nome dato",
+        "pl": "Brakuje imienia"
+      },
+      {
+        "en": "Last name is missing",
+        "it": "Manca il cognome",
+        "pl": "Brak nazwiska"
+      },
+      {
+        "en": "Each author must have a unique order"
+      },
+      {
+        "en": "Data file has a header Name"
+      },
+      {
+        "en": "Dataset Name",
+        "it": "Nome del set di dati",
+        "pl": "Nazwa zestawu danych"
+      },
+      {
+        "en": "Description"
+      },
+      {
+        "en": "Schema Version"
+      },
+      {
+        "en": "License"
+      },
+      {
+        "en": "Custom License"
+      },
+      {
+        "en": "Citation"
+      },
+      {
+        "en": "Funder"
+      },
+      {
+        "en": "DOI (Document Object Identifier)"
+      },
+      {
+        "en": "ISSN (International Standard Serial Number)"
+      },
+      {
+        "en": "PMID (PubMed ID)"
+      },
+      {
+        "en": "Other Identifier"
+      },
+      {
+        "en": "Keywords (separate with commas)"
+      }
+    ]
+}

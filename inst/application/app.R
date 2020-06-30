@@ -5,6 +5,9 @@ library(shinyjs)
 library(dplyr)
 library(DT)
 library(pdsbuilder)
+library(shiny.i18n)
+
+translator <- Translator$new(translation_json_path = "i18n/translation.json")
 
 # Functions and Tabs----
 source("func.R")
@@ -28,12 +31,10 @@ sidebar <- dashboardSidebar(
 # . main_tab ----
 main_tab <- tabItem(
   tabName = "main_tab",
-  p("Upload data in the Data Upload tab and download the codebook JSON file in the Codebook tab."),
+  uiOutput("instructions"),
   tags$a(href="https://docs.google.com/document/d/1u8o5jnWk0Iqp_J06PTu5NjBfVsdoPbBhstht6W0fFp0/edit#heading=h.caxnnxqaobj", "Technical Spec"),
-  selectInput("lang", "Language", c("English" = "en",
-                                    "Test" = "test"),
-              selected = "en"),
-  p("More instructions and intro...")
+  uiOutput("lang"),
+  p("The translation is not fully set up yet, so only the text on this page will be translated.")
 )
 
 
@@ -51,25 +52,6 @@ cb_tab <- tabItem(
   HTML("<pre id='codebook' class='shiny-text-output'></pre>")
 )
 
-# . js ----
-
-jscode <- '
-$(function() {
-  $("#author_reorder").click(function() {
-    ord = $("select.author_order").map(function(){
-      return this.value;
-    }).get().join(",");
-    Shiny.onInputChange("author_order", ord);
-  });
-  $("#author_list").on("click", "a.author_edit", function() {
-    Shiny.onInputChange("author_edit", $(this).attr("data"));
-  });
-  $("#author_list").on("click", "a.author_delete", function() {
-    Shiny.onInputChange("author_delete", $(this).attr("data"));
-  });
-});
-'
-
 # . dashboardPage ----
 ui <- dashboardPage(
   dashboardHeader(title = "Psych-DS Codebook",
@@ -79,7 +61,7 @@ ui <- dashboardPage(
     shinyjs::useShinyjs(),
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
-      tags$script(HTML(jscode))
+      tags$script(src = "pds.js")
     ),
     tabItems(
       main_tab,
@@ -93,9 +75,62 @@ ui <- dashboardPage(
 
 # Define server logic ----
 server <- function(input, output, session) {
-  ## setup ----
+  ## . translation ----
+  i18n <- reactive({
+    selected <- input$lang
+    if (length(selected) > 0 && selected %in% translator$languages) {
+      translator$set_translation_language(selected)
+    }
+    translator
+  })
+
+  observeEvent(input$lang, {
+    ip <- c(name = "Dataset Name",
+            schemaVersion = "Schema Version",
+            license_free = "Custom License",
+            citation = "Citation",
+            funder = "Funder",
+            url = "URL",
+            identifier_doi = "DOI (Document Object Identifier)",
+            identifier_issn = "ISSN (International Standard Serial Number)",
+            identifier_pmid = "PMID (PubMed ID)",
+            identifier ="Other Identifier",
+            keywords = "Keywords (separate with commas)")
+
+    for (nm in names(ip)) {
+      updateTextInput(session, nm, label = i18n()$t(ip[[nm]]))
+    }
+
+    ip <- c(license = "License",
+            privacyPolicy = "Privacy Policy")
+    for (nm in names(ip)) {
+      updateSelectInput(session, nm, label = i18n()$t(ip[[nm]]))
+    }
+
+    ip <- c(header = "Data file has a header Name")
+    for (nm in names(ip)) {
+      updateCheckboxInput(session, nm, label = i18n()$t(ip[[nm]]))
+    }
+
+    ip <- c(description = "Description")
+    for (nm in names(ip)) {
+      updateTextAreaInput(session, nm, label = i18n()$t(ip[[nm]]))
+    }
+  })
+
+  output$lang <- renderUI({
+    selectInput('lang',
+                 i18n()$t("Change language"),
+                 choices = translator$languages,
+                 selected = input$lang)
+  })
+  output$instructions <- renderUI({
+    "Upload data in the Data Upload tab and download the codebook JSON file in the Codebook tab." %>% i18n()$t()
+  })
+
+  ## . setup ----
   observeEvent(input$license, {
-    if (input$license == "Other (write in)") {
+    if (input$license == "Other (write in)" %>% i18n()$t()) {
       shinyjs::show("license_free")
     } else {
       shinyjs::hide("license_free")
@@ -104,14 +139,14 @@ server <- function(input, output, session) {
   shinyjs::hide("author_reorder")
   shinyjs::hide("author_n")
 
-  ## localisation ----
+  ## . localisation ----
   observeEvent(input$lang, {
   })
 
-  ## filename
+  ## . filename
   filename <- reactiveVal("file")
 
-  ## Load data ----
+  ## . load data ----
   rawdata <- reactive({
     inFile <- input$inFile
     if (is.null(inFile)) return(data.frame())
@@ -231,7 +266,7 @@ server <- function(input, output, session) {
     if (isFALSE(orcid) & input$orcid != "") {
       problems <- TRUE
       updateTextInput(session, "orcid",
-                      label = "ORCiD is not valid")
+                      label = "ORCiD is not valid" %>% i18n()$t())
       shinyjs::addClass("orcid", "warning")
     }
 
@@ -242,7 +277,7 @@ server <- function(input, output, session) {
         label <- ifelse(nm == "given",
                         "Given name",
                         "Last name") %>%
-                 paste("is missing")
+                 paste("is missing") %>% i18n()$t()
         updateTextInput(session, nm, label = label)
         shinyjs::addClass(nm, "warning")
       }
@@ -262,11 +297,11 @@ server <- function(input, output, session) {
       # reset values
       updateTextInput(session, "author_n", value = length(aa)+1)
       updateTextInput(session, "given", value = "",
-                      label = "Given Name(s) including initials")
+                      label = "Given Name(s) including initials" %>% i18n()$t())
       updateTextInput(session, "surname", value = "",
-                      label = "Last Name(s)")
+                      label = "Last Name(s)" %>% i18n()$t())
       updateTextInput(session, "orcid", value = "",
-                      label = "ORCiD")
+                      label = "ORCiD" %>% i18n()$t())
       updateCheckboxGroupInput(session, "roles", selected = character(0))
       shinyjs::removeClass("given", "warning")
       shinyjs::removeClass("surname", "warning")
@@ -289,7 +324,9 @@ server <- function(input, output, session) {
   observeEvent(input$author_reorder, {
     ord <- strsplit(input$author_order, ",")[[1]] %>% as.integer()
     if (length(unique(ord)) != length(ord)) {
-      runjs('alert("Each author must have a unique order");')
+      js <- sprintf('alert("%s");',
+                     i18n()$t("Each author must have a unique order"))
+      runjs(js)
     } else {
       a <- authors()
       authors(a[ord])
@@ -303,12 +340,12 @@ server <- function(input, output, session) {
     a <- authors()[[to_edit]]
     updateTextInput(session, "author_n", value = to_edit)
     updateTextInput(session, "given", value = a$given,
-                    label = "Given Name(s) including initials")
+                    label = "Given Name(s) including initials" %>% i18n()$t())
     updateTextInput(session, "surname", value = a$surname,
-                    label = "Last Name(s)")
+                    label = "Last Name(s)" %>% i18n()$t())
     updateTextInput(session, "orcid",
                     value = ifelse(isFALSE(a$orcid), "", a$orcid),
-                    label = "ORCiD")
+                    label = "ORCiD" %>% i18n()$t())
     updateCheckboxGroupInput(session, "roles", selected = a$roles)
     shinyjs::removeClass("given", "warning")
     shinyjs::removeClass("surname", "warning")

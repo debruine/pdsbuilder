@@ -22,7 +22,6 @@ upload_tab <- tabItem(
     box(
       title = "Upload Data",
       width = 12,
-      p("This is a working demo and many functions do not work yet."),
       fileInput("inFile", "CSV/XLS(X) Data File",
                 multiple = FALSE, width = NULL,
                 accept = c(
@@ -41,7 +40,7 @@ upload_tab <- tabItem(
       selectInput("schemaVersion", "Schema Version",
                   c("Psych-DS 0.1.0"), selected = "Psych-DS 0.1.0"),
       selectInput("license", "License", licenses),
-      textInput("license_free", "license_free"),
+      textInput("license_free", "Customm License"),
       textInput("citation", "Citation"),
       textInput("funder", "Funder"),
       textInput("url", "URL"),
