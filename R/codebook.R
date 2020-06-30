@@ -128,82 +128,83 @@ codebook <- function(data, name = NULL, vardesc = list(), ...,
   # TODO: add more validation ----
 
   # make variableMeasured ----
-  vm <- list()
-  colnames <- names(data)
+  if (ncol(data) > 0) {
+    vm <- list()
+    colnames <- names(data)
 
-  for (i in 1:ncol(data)) {
-    col <- colnames[i]
+    for (i in 1:ncol(data)) {
+      col <- colnames[i]
 
-    # @type and name ----
-    vm[[i]] <- list(
-      `@type` = "PropertyValue",
-      name = col,
-      description = col # default to be replaced from vardesc
-    )
-
-    # set variable attributes from vardesc ----
-    for (vd in names(vardesc)) {
-      vals <- vardesc[[vd]]
-
-      if (!is.null(names(vals))) {
-        # set from named (if available)
-        if (col %in% names(vals)) vm[[i]][vd] <- vals[col]
-      } else if (length(vals) == ncol(data)) {
-        # set from position
-        vm[[i]][vd] <- vals[i]
-      } else {
-        warning("Couldn't set ", vd, " for ", col)
-      }
-    }
-
-    # set type if not specified ---
-    if (!is.null(vm[[i]]$type)) {
-      if ((vm[[i]]$type %in% names(types))) {
-        vm[[i]]$type <- types[[vm[[i]]$type]]
-      } else {
-        # not a valid type, so set to null and get from data
-        warning(vm[[i]]$name, " does not have a valid type (",
-                vm[[i]]$type, ")")
-        vm[[i]]$type <- NULL
-      }
-    }
-
-    if (is.null(vm[[i]]$type)) {
-      can_be_int <- isTRUE(all(
-        data[[i]] == suppressWarnings(as.integer(data[[i]]))
-      ))
-
-      vm[[i]]$type <- dplyr::case_when(
-        is.factor(data[[i]]) ~ "string",
-        is.character(data[[i]]) ~ "string",
-        is.integer(data[[i]]) ~ "int",
-        is.numeric(data[[i]]) & can_be_int ~ "int",
-        is.numeric(data[[i]]) ~ "float",
-        is.logical(data[[i]]) ~ "bool",
-        TRUE ~ typeof(data[[i]])
+      # @type and name ----
+      vm[[i]] <- list(
+        `@type` = "PropertyValue",
+        name = col,
+        description = col # default to be replaced from vardesc
       )
-      if (pdsbuilder_options("verbose")) {
-        message(vm[[i]]$name, " set to type ", vm[[i]]$type)
+
+      # set variable attributes from vardesc ----
+      for (vd in names(vardesc)) {
+        vals <- vardesc[[vd]]
+
+        if (!is.null(names(vals))) {
+          # set from named (if available)
+          if (col %in% names(vals)) vm[[i]][vd] <- vals[col]
+        } else if (length(vals) == ncol(data)) {
+          # set from position
+          vm[[i]][vd] <- vals[i]
+        } else {
+          warning("Couldn't set ", vd, " for ", col)
+        }
+      }
+
+      # set type if not specified ---
+      if (!is.null(vm[[i]]$type)) {
+        if ((vm[[i]]$type %in% names(types))) {
+          vm[[i]]$type <- types[[vm[[i]]$type]]
+        } else {
+          # not a valid type, so set to null and get from data
+          warning(vm[[i]]$name, " does not have a valid type (",
+                  vm[[i]]$type, ")")
+          vm[[i]]$type <- NULL
+        }
+      }
+
+      if (is.null(vm[[i]]$type)) {
+        can_be_int <- isTRUE(all(
+          data[[i]] == suppressWarnings(as.integer(data[[i]]))
+        ))
+
+        vm[[i]]$type <- dplyr::case_when(
+          is.factor(data[[i]]) ~ "string",
+          is.character(data[[i]]) ~ "string",
+          is.integer(data[[i]]) ~ "int",
+          is.numeric(data[[i]]) & can_be_int ~ "int",
+          is.numeric(data[[i]]) ~ "float",
+          is.logical(data[[i]]) ~ "bool",
+          TRUE ~ typeof(data[[i]])
+        )
+        if (pdsbuilder_options("verbose")) {
+          message(vm[[i]]$name, " set to type ", vm[[i]]$type)
+        }
+      }
+
+      # get levels for factors if not specified ----
+      if (is.factor(data[[i]]) | !is.null(vm[[i]]$levels)) {
+        if (is.null(vm[[i]]$levels)) {
+          lvls <- levels(data[[i]])
+          names(lvls) <- lvls
+          vm[[i]]$levels <- lvls
+        }
+        # make sure it is a list because named vectors don't render right in jsonlite
+        vm[[i]]$levels <- as.list(vm[[i]]$levels)
+
+        if (is.null(vm[[i]]$ordered)) {
+          vm[[i]]$ordered <- is.ordered(data[[i]])
+        }
       }
     }
-
-    # get levels for factors if not specified ----
-    if (is.factor(data[[i]]) | !is.null(vm[[i]]$levels)) {
-      if (is.null(vm[[i]]$levels)) {
-        lvls <- levels(data[[i]])
-        names(lvls) <- lvls
-        vm[[i]]$levels <- lvls
-      }
-      # make sure it is a list because named vectors don't render right in jsonlite
-      vm[[i]]$levels <- as.list(vm[[i]]$levels)
-
-      if (is.null(vm[[i]]$ordered)) {
-        vm[[i]]$ordered <- is.ordered(data[[i]])
-      }
-    }
+    schema$variableMeasured <- vm
   }
-
-  schema$variableMeasured <- vm
 
   if (isTRUE(interactive)) {
     schema <- interactive_codebook(data, schema)

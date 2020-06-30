@@ -1,29 +1,17 @@
-credit_roles <- c("Conceptualization",
-                  "Data curation",
-                  "Formal analysis",
-                  "Funding acquisition",
-                  "Investigation",
-                  "Methodology",
-                  "Project administration",
-                  "Resources",
-                  "Software",
-                  "Supervision",
-                  "Validation",
-                  "Visualization",
-                  "Writing - original draft",
-                  "Writing - review & editing")
-
 # . authors tab ----
 authors_tab <- tabItem(
   tabName = "authors_tab",
   h2("Authors"),
   htmlOutput("author_list"),
+  actionButton("author_reorder", "Reorder Authors"),
 
   h3("Add an Author"),
-  textInput("surname", "Given Name(s) including initials"),
-  textInput("given", "Last Name(s)"),
-  textInput("orcid", "ORCiD (see https://orcid.org/)"),
-  checkboxGroupInput("roles", "Contributor Roles (see https://casrai.org/credit/)", credit_roles),
+  numericInput("author_n", "Author Number", value = 1, min = 1),
+  textInput("given", "Given Name(s) including initials"),
+  textInput("surname", "Last Name(s)"),
+  textInput("orcid", "ORCiD"),
+  checkboxGroupInput("roles", "Contributor Roles",
+                     choices = credit_roles("names")),
   actionButton("add_author", "Add Author"),
 
   h3("Contributor Roles"),

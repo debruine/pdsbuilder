@@ -29,6 +29,7 @@ sidebar <- dashboardSidebar(
 main_tab <- tabItem(
   tabName = "main_tab",
   p("Upload data in the Data Upload tab and download the codebook JSON file in the Codebook tab."),
+  tags$a(href="https://docs.google.com/document/d/1u8o5jnWk0Iqp_J06PTu5NjBfVsdoPbBhstht6W0fFp0/edit#heading=h.caxnnxqaobj", "Technical Spec"),
   selectInput("lang", "Language", c("English" = "en",
                                     "Test" = "test"),
               selected = "en"),
@@ -50,6 +51,25 @@ cb_tab <- tabItem(
   HTML("<pre id='codebook' class='shiny-text-output'></pre>")
 )
 
+# . js ----
+
+jscode <- '
+$(function() {
+  $("#author_reorder").click(function() {
+    ord = $("select.author_order").map(function(){
+      return this.value;
+    }).get().join(",");
+    Shiny.onInputChange("author_order", ord);
+  });
+  $("#author_list").on("click", "a.author_edit", function() {
+    Shiny.onInputChange("author_edit", $(this).attr("data"));
+  });
+  $("#author_list").on("click", "a.author_delete", function() {
+    Shiny.onInputChange("author_delete", $(this).attr("data"));
+  });
+});
+'
+
 # . dashboardPage ----
 ui <- dashboardPage(
   dashboardHeader(title = "Psych-DS Codebook",
@@ -57,6 +77,10 @@ ui <- dashboardPage(
   sidebar,
   dashboardBody(
     shinyjs::useShinyjs(),
+    tags$head(
+      tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
+      tags$script(HTML(jscode))
+    ),
     tabItems(
       main_tab,
       upload_tab,
@@ -77,15 +101,20 @@ server <- function(input, output, session) {
       shinyjs::hide("license_free")
     }
   })
+  shinyjs::hide("author_reorder")
+  shinyjs::hide("author_n")
 
   ## localisation ----
   observeEvent(input$lang, {
   })
 
+  ## filename
+  filename <- reactiveVal("file")
+
   ## Load data ----
   rawdata <- reactive({
     inFile <- input$inFile
-    if (is.null(inFile)) return(NULL)
+    if (is.null(inFile)) return(data.frame())
 
     file_extension <- tools::file_ext(inFile$datapath)
     if (file_extension == "csv") {
@@ -99,9 +128,11 @@ server <- function(input, output, session) {
       rawdata <- haven::read_sas(inFile$datapath)
     }
 
-    file_name <- gsub(paste0("." , file_extension), "", inFile$name)
+    paste0("." , file_extension) %>%
+      gsub("", inFile$name) %>%
+      filename()
     if (input$name == "") {
-      updateTextInput(session, "name", value = file_name)
+      updateTextInput(session, "name", value = filename())
     }
 
     rawdata
@@ -114,7 +145,7 @@ server <- function(input, output, session) {
     props$data <- rawdata()
     props$return <- "json"
 
-    if (is.null(props$data)) return(NULL)
+    #if (is.null(props$data)) return(NULL)
 
     dsmeta <- c("name", "description", "schemaVersion", "license", "citation", "funder", "url", "privacyPolicy")
 
@@ -146,6 +177,18 @@ server <- function(input, output, session) {
     keywords <- strsplit(input$keywords, "\\s*,\\s*")
     if (length(keywords[[1]]) > 0) props$keywords <- keywords[[1]]
 
+    a <- authors()
+    if (length(a) > 0) {
+      for (i in 1:length(a)) {
+        a[[i]] <- c("@type" = "Person", a[[i]])
+        if (isFALSE(a[[i]]$orcid)) a[[i]]$orcid <- NULL
+        if (length(a[[1]]$roles) == 0) a[[i]]$roles <- NULL
+      }
+      props$author <- a
+    }
+
+    props$vardesc <- vardesc()
+
     do.call(codebook, props)
   })
 
@@ -159,71 +202,126 @@ server <- function(input, output, session) {
 
   output$downloadCB <- downloadHandler(
     filename = function() {
-      paste0(dat()$file_name, ".json")
+      paste0(filename(), ".json")
     },
     content = function(file) {
-      dat()$cb %>%
+      cb() %>%
         jsonlite::prettify(4) %>%
         writeLines(file)
     }
   )
 
-  # . notifications
+  # . vardesc ----
+  vardesc <- reactiveVal(list())
 
+  # . notifications ----
   notifications <- reactiveVal(list())
   output$notificationsMenu <- renderMenu({
-    message(notifications())
     dropdownMenu(type = "notifications", .list = notifications())
   })
 
-  # . authors
+  # . authors ----
   authors <- reactiveVal(list())
 
   observeEvent(input$add_author, {
     problems <- FALSE
+
+    # check orcid
     orcid <- check_orcid(input$orcid)
     if (isFALSE(orcid) & input$orcid != "") {
       problems <- TRUE
-      txt <- sprintf("The ORCiD for %s %s is not valid",
-                     input$given, input$surname)
-      msg <- notificationItem(txt,
-                              icon = icon("exclamation-triangle"),
-                              status = "warning")
-      notifications(c(notifications(), list(msg)))
+      updateTextInput(session, "orcid",
+                      label = "ORCiD is not valid")
+      shinyjs::addClass("orcid", "warning")
     }
 
-    a <- list(list(surname = input$surname,
-                 given = input$given,
-                 orcid = orcid,
-                 roles = input$roles))
-    authors(c(authors(), a))
+    # check names
+    for (nm in c("surname", "given")) {
+      if (trimws(input[[nm]]) == "") {
+        problems <- TRUE
+        label <- ifelse(nm == "given",
+                        "Given name",
+                        "Last name") %>%
+                 paste("is missing")
+        updateTextInput(session, nm, label = label)
+        shinyjs::addClass(nm, "warning")
+      }
+    }
 
     if (!problems) {
+      # add author
+      a <- list(surname = trimws(input$surname),
+                given = trimws(input$given),
+                orcid = orcid,
+                roles = input$roles)
+      aa <- authors()
+      aa[[input$author_n]] <- a
+      authors(aa)
+
+
       # reset values
-      updateTextInput(session, "given", value = "")
-      updateTextInput(session, "surname", value = "")
-      updateTextInput(session, "orcid", value = "")
+      updateTextInput(session, "author_n", value = length(aa)+1)
+      updateTextInput(session, "given", value = "",
+                      label = "Given Name(s) including initials")
+      updateTextInput(session, "surname", value = "",
+                      label = "Last Name(s)")
+      updateTextInput(session, "orcid", value = "",
+                      label = "ORCiD")
+      updateCheckboxGroupInput(session, "roles", selected = character(0))
+      shinyjs::removeClass("given", "warning")
+      shinyjs::removeClass("surname", "warning")
+      shinyjs::removeClass("orcid", "warning")
     }
-  })
+  }, ignoreNULL = TRUE)
 
+  # . . author_list ----
   output$author_list <- renderUI({
-    i <- 0
-    alist <- list()
-    for (a in authors()) {
-      i <- i + 1
-      ab <- actionButton(paste0("author_", i), "Delete")
-
-      txt <- sprintf("%s, %s %s: %s",
-                     a$surname, a$given,
-                     ifelse(a$orcid, a$orcid, ""),
-                     paste(a$roles, collapse = ", "))
-
-      alist[[i]] <- tags$li(txt)
+    a <- authors()
+    if (length(a) > 1) {
+      shinyjs::show("author_reorder")
+    } else {
+      shinyjs::hide("author_reorder")
     }
-
-    do.call(tags$ol, alist)
+    make_author_list(a)
   })
 
+  # . . author_reorder ----
+  observeEvent(input$author_reorder, {
+    ord <- strsplit(input$author_order, ",")[[1]] %>% as.integer()
+    if (length(unique(ord)) != length(ord)) {
+      runjs('alert("Each author must have a unique order");')
+    } else {
+      a <- authors()
+      authors(a[ord])
+    }
+  }, ignoreNULL = TRUE)
+
+  # . . author_edit ----
+  observeEvent(input$author_edit, {
+    to_edit <- as.integer(input$author_edit)
+    message(to_edit)
+    a <- authors()[[to_edit]]
+    updateTextInput(session, "author_n", value = to_edit)
+    updateTextInput(session, "given", value = a$given,
+                    label = "Given Name(s) including initials")
+    updateTextInput(session, "surname", value = a$surname,
+                    label = "Last Name(s)")
+    updateTextInput(session, "orcid",
+                    value = ifelse(isFALSE(a$orcid), "", a$orcid),
+                    label = "ORCiD")
+    updateCheckboxGroupInput(session, "roles", selected = a$roles)
+    shinyjs::removeClass("given", "warning")
+    shinyjs::removeClass("surname", "warning")
+    shinyjs::removeClass("orcid", "warning")
+  }, ignoreNULL = TRUE)
+
+  # . . author_delete ----
+  observeEvent(input$author_delete, {
+    to_del <- as.integer(input$author_delete)
+    a <- authors()
+    a[to_del] <- NULL
+    authors(a)
+  }, ignoreNULL = TRUE)
 }
 
 # Run the application ----
