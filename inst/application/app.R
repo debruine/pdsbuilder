@@ -21,7 +21,8 @@ source("authors.R")
 sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("Psych-DS", tabName = "main_tab"),
-    menuItem("Upload Data", tabName = "upload_tab"),
+    menuItem("Dataset Descriptions", tabName = "dataset_tab"),
+    menuItem("Variable Descriptions", tabName = "vars_tab"),
     menuItem("Authors", tabName = "authors_tab"),
     menuItem("Codebook", tabName = "cb_tab"),
     menuItem("Licenses", tabName = "license_tab")
@@ -42,14 +43,44 @@ main_tab <- tabItem(
 
 vars_tab <- tabItem(
   tabName = "vars_tab",
-  p("Describe your variables here")
+  uiOutput("vars_instructions"),
+  fluidRow(
+    box(
+      width = 12,
+      fileInput("inFile", "Data File",
+            multiple = FALSE, width = NULL,
+            accept = c(
+              'text/csv',
+              'text/comma-separated-values,text/plain',
+              '.csv', '.tsv', '.txt', '.sav', '.xls', '.xlsx'
+            ),
+            buttonLabel = "Browse...",
+            placeholder = "No file selected"
+      ),
+      checkboxInput("header", "Data file has a header", TRUE),
+      DTOutput("data_table")
+    ),
+    box(
+      width = 12,
+      uiOutput("var_list")
+    ),
+    box(
+      width = 12,
+      title = "Variable Descriptions (for debugging)",
+      HTML("<pre id='vardesc' class='shiny-text-output'></pre>")
+    )
+  )
 )
 
 # . cb_tab ----
 cb_tab <- tabItem(
   tabName = "cb_tab",
-  downloadLink("downloadCB", "Download"),
-  HTML("<pre id='codebook' class='shiny-text-output'></pre>")
+  downloadButton("downloadCB", "Download Codebook", width = 4),
+  downloadButton("downloadTSV", "Download Data as TSV", width = 4),
+  box(width = 12,
+      title = "Codebook in JSON format",
+      HTML("<pre id='codebook' class='shiny-text-output'></pre>")
+  )
 )
 
 # . dashboardPage ----
@@ -65,7 +96,8 @@ ui <- dashboardPage(
     ),
     tabItems(
       main_tab,
-      upload_tab,
+      dataset_tab,
+      vars_tab,
       authors_tab,
       cb_tab,
       license_tab
@@ -103,7 +135,9 @@ server <- function(input, output, session) {
       updateTextAreaInput = c(description = "Description"),
       updateCheckboxInput = c(header = "Data file has a header Name"),
       updateActionButton = c(author_reorder = "Reorder Authors",
-                             add_author = "Add Author")
+                             add_author = "Add Author",
+                             downloadCB = "Download Codebook",
+                             downloadTSV = "Download Data as TSV ")
     )
 
     for (func in names(ip)) {
@@ -127,6 +161,12 @@ server <- function(input, output, session) {
   output$instructions <- renderUI({
     "Upload data in the Data Upload tab and download the codebook JSON file in the Codebook tab." %>% i18n()$t()
   })
+  output$dataset_instructions <- renderUI({
+    "Fill in any information about the dataset." %>% i18n()$t()
+  })
+  output$vars_instructions <- renderUI({
+    "Upload data and edit the default variable information" %>% i18n()$t()
+  })
 
   ## . setup ----
   observeEvent(input$license, {
@@ -139,12 +179,12 @@ server <- function(input, output, session) {
   shinyjs::hide("author_reorder")
   shinyjs::hide("author_n")
 
-  ## . localisation ----
-  observeEvent(input$lang, {
-  })
-
-  ## . filename
+  ## . reactive values ----
   filename <- reactiveVal("file")
+  newdata  <- reactiveVal(data.frame())
+  vardesc  <- reactiveVal(list())
+  notifications <- reactiveVal(list())
+  authors <- reactiveVal(list())
 
   ## . load data ----
   rawdata <- reactive({
@@ -152,15 +192,17 @@ server <- function(input, output, session) {
     if (is.null(inFile)) return(data.frame())
 
     file_extension <- tools::file_ext(inFile$datapath)
-    if (file_extension == "csv") {
-      rawdata <- read.csv(inFile$datapath, header = input$header)
-    } else if (file_extension %in% c("xls", "xlsx")) {
-      rawdata <- as.data.frame(readxl::read_excel(inFile$datapath,
-                                                   col_names = input$header))
-    } else if (file_extension %in% c("sav")) {
-      rawdata <- haven::read_sav(inFile$datapath)
-    } else if (file_extension %in% c("sas")) {
-      rawdata <- haven::read_sas(inFile$datapath)
+    txt_ext <- c("csv", "txt", "tsv")
+    xls_ext <- c("xls", "xlsx")
+    other_ext <- c("sav")
+    if (file_extension %in% txt_ext) {
+      rawdata <- rio::import(inFile$datapath, header = input$header)
+    } else if (file_extension %in% xls_ext) {
+      rawdata <- rio::import(inFile$datapath, col_names = input$header)
+    } else if (file_extension %in% other_ext) {
+      rawdata <- rio::import(inFile$datapath)
+    } else {
+      return(data.frame())
     }
 
     paste0("." , file_extension) %>%
@@ -170,6 +212,7 @@ server <- function(input, output, session) {
       updateTextInput(session, "name", value = filename())
     }
 
+    #newdata(rawdata) # not working
     rawdata
   })
 
@@ -179,8 +222,6 @@ server <- function(input, output, session) {
     props <- list()
     props$data <- rawdata()
     props$return <- "json"
-
-    #if (is.null(props$data)) return(NULL)
 
     dsmeta <- c("name", "description", "schemaVersion", "license", "citation", "funder", "url", "privacyPolicy")
 
@@ -227,7 +268,7 @@ server <- function(input, output, session) {
     do.call(codebook, props)
   })
 
-  output$rawdata_table <- renderDataTable({
+  output$data_table <- renderDataTable({
     datatable(rawdata(), rownames = F)
   })
 
@@ -235,6 +276,7 @@ server <- function(input, output, session) {
     as.character(cb())
   })
 
+  # . download codebook
   output$downloadCB <- downloadHandler(
     filename = function() {
       paste0(filename(), ".json")
@@ -246,18 +288,45 @@ server <- function(input, output, session) {
     }
   )
 
+  # . download TSV
+  output$downloadTSV <- downloadHandler(
+    filename = function() {
+      paste0(filename(), ".tsv")
+    },
+    content = function(file) {
+      write.table(rawdata(), file, sep = "\t")
+    }
+  )
+
   # . vardesc ----
-  vardesc <- reactiveVal(list())
+  observeEvent(input$inFile, {
+    cb <- codebook(iris, return = "list")
+    vm <- cb$variableMeasured
+    vardesc <- list(
+      name = sapply(vm, function(x) { x$name }),
+      description = sapply(vm, function(x) { x$description }),
+      type = sapply(vm, function(x) { x$type })
+    )
+    names(vardesc$description) <- vardesc$name
+    names(vardesc$type) <- vardesc$name
+
+    vardesc(vardesc)
+
+    output$vardesc <- renderText(nested_list(vardesc()))
+
+    output$var_list <- renderUI({
+      sapply(vardesc$name, function(x) {
+        paste0("<button>", x, "</button>")
+      }) %>% paste(collapse = "\n")
+    })
+  })
 
   # . notifications ----
-  notifications <- reactiveVal(list())
   output$notificationsMenu <- renderMenu({
     dropdownMenu(type = "notifications", .list = notifications())
   })
 
   # . authors ----
-  authors <- reactiveVal(list())
-
   observeEvent(input$add_author, {
     problems <- FALSE
 

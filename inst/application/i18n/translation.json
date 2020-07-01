@@ -31,6 +31,18 @@
         "pl": "Dodaj autora"
       },
       {
+        "en": "Reorder Authors",
+        "pl": "Zmień kolejność autorów"
+      },
+      {
+        "en": "Download Codebook",
+        "pl": "Pobierz książkę kodów"
+      },
+      {
+        "en": "Download Data as TSV",
+        "pl": "Pobierz dane jako TSV"
+      },
+      {
         "en": "Data file has a header Name"
       },
       {

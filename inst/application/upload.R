@@ -15,26 +15,13 @@ licenses <- c(
   "Other (write in)"
 )
 
-# . upload_tab ----
-upload_tab <- tabItem(
-  tabName = "upload_tab",
+# . dataset_tab ----
+dataset_tab <- tabItem(
+  tabName = "dataset_tab",
+  htmlOutput("dataset_instructions"),
   fluidRow(
     box(
-      title = "Upload Data",
       width = 12,
-      fileInput("inFile", "CSV/XLS(X) Data File",
-                multiple = FALSE, width = NULL,
-                accept = c(
-                  'text/csv',
-                  'text/comma-separated-values,text/plain',
-                  '.csv',
-                  '.xls',
-                  '.xlsx'
-                ),
-                buttonLabel = "Browse...",
-                placeholder = "No file selected"
-      ),
-      checkboxInput("header", "Data file has a header", TRUE),
       textInput("name", "Dataset Name"),
       textAreaInput("description", "Description"),
       selectInput("schemaVersion", "Schema Version",
@@ -53,8 +40,7 @@ upload_tab <- tabItem(
                     "Open (deidentified)" = "open_deidentified",
                     "Open (redacted)" = "open_redacted",
                     "Private" = "private")),
-      textInput("keywords", "Keywords (separate with commas)"),
-      DTOutput("rawdata_table")
+      textInput("keywords", "Keywords (separate with commas)")
     )
   )
 )

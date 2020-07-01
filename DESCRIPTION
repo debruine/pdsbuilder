@@ -10,7 +10,7 @@ Authors@R: c(
         email = "debruine@gmail.com", 
         comment = c(ORCID = "0000-0002-7523-5539")
     ))
-Maintainer: The package maintainer <yourself@somewhere.net>
+Maintainer: Lisa DeBruine <debruine@gmail.com>
 Description: Create JSON sidecar files in the Psych-DS format.
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -24,6 +24,7 @@ RoxygenNote: 7.1.0
 Imports: 
     magrittr,
     dplyr,
+    rio,
     jsonlite,
     shiny,
     shinydashboard,
@@ -32,6 +33,6 @@ Imports:
     shiny.i18n
 Remotes:
     debruine/faux,
-    appsilon/shiny.i18n
+    Appsilon/shiny.i18n
 URL: https://github.com/debruine/pdsbuilder
 BugReports: https://github.com/debruine/pdsbuilder/issues
