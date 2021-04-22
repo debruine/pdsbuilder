@@ -60,7 +60,7 @@ nested_list <- function(x, pre = "* ", post = "    ", nextt = ": ") {
                                  paste(x, collapse = ", "))
   }
 
-  list_txt <- paste(txt, collapse = "\n")
+  list_txt <- paste(txt, collapse = "\n\n")
   class(list_txt) <- c("nested_list", "character")
 
   list_txt
